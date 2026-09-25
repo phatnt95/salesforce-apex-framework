@@ -10,6 +10,15 @@ The framework provides reusable building blocks for:
 * **Selector interfaces** — define contracts for selector implementations.
 * **`TestDataFactory`** — reusable test data helpers for common standard SObjects.
 * **Ready-to-use selector examples** — Account, Contact, Case, and Lead.
+* 
+# Deployment
+
+<a href="https://githubsfdeploy.herokuapp.com?owner=phatnt95&repo=salesforce-apex-framework&ref=main">
+  <img alt="Deploy to Salesforce"
+       src="https://raw.githubusercontent.com/afawcett/githubsfdeploy/master/deploy.png">
+</a>
+
+Deploy the framework directly to your Salesforce org without cloning the repository.
 
 ## Architecture
 
@@ -314,40 +323,7 @@ sf apex run test \
 
 ---
 
-# Development
 
-Clone the repository:
-
-```bash
-git clone https://github.com/phatnt95/salesforce-apex-framework.git
-
-cd salesforce-apex-framework
-```
-
-Authenticate:
-
-```bash
-sf org login web --alias framework-dev
-```
-
-Deploy:
-
-```bash
-sf project deploy start \
-    --source-dir force-app \
-    --target-org framework-dev
-```
-
-Run tests:
-
-```bash
-sf apex run test \
-    --target-org framework-dev \
-    --test-level RunLocalTests \
-    --wait 30
-```
-
----
 
 # Project Structure
 
