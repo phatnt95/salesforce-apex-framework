@@ -7,9 +7,9 @@ The framework provides reusable building blocks for:
 * **`SOQLBuilder`** — build dynamic SOQL using a fluent Builder pattern.
 * **`SObjectSelector`** — centralize SObject queries and enforce a Selector layer.
 * **`SObjectUnitOfWork`** — coordinate inserts, updates, deletes, relationships, rollback, and transaction ordering.
-* **Selector interfaces** — define contracts for selector implementations.
+* **`Selector interfaces`** — define contracts for selector implementations.
 * **`TestDataFactory`** — reusable test data helpers for common standard SObjects.
-* **Ready-to-use selector examples** — Account, Contact, Case, and Lead.
+* **`Ready-to-use selector examples`** — Account, Contact, Case, and Lead.
 * 
 # Deployment
 
