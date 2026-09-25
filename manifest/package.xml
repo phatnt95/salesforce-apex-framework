@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+	<types>
+		<members>AccountSelector</members>
+		<members>AccountSelectorTest</members>
+		<members>CaseSelector</members>
+		<members>CaseSelectorTest</members>
+		<members>ContactSelector</members>
+		<members>ContactSelectorTest</members>
+		<members>ISObjectSelector</members>
+		<members>ISObjectUnitOfWork</members>
+		<members>LeadSelector</members>
+		<members>LeadSelectorTest</members>
+		<members>SOQLBuilder</members>
+		<members>SOQLBuilderTest</members>
+		<members>SObjectSelector</members>
+		<members>SObjectSelectorTest</members>
+		<members>SObjectUnitOfWork</members>
+		<members>SObjectUnitOfWorkTest</members>
+		<members>TestDataFactory</members>
+		<name>ApexClass</name>
+	</types>
+	<version>67.0</version>
+</Package>
