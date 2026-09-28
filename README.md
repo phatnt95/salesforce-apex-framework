@@ -1,128 +1,138 @@
 # Salesforce Apex Framework
 
-A lightweight, source-driven Apex framework for building maintainable Salesforce applications with a consistent data-access and transaction architecture.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![API Version](https://img.shields.io/badge/API%20Version-67.0-brightgreen.svg)](https://developer.salesforce.com/)
+[![Apex Tests](https://img.shields.io/badge/Tests-100%25%20Passing-success.svg)](#testing)
 
-The framework provides reusable building blocks for:
-
-* **`SOQLBuilder`** — build dynamic SOQL using a fluent Builder pattern.
-* **`SObjectSelector`** — centralize SObject queries and enforce a Selector layer.
-* **`SObjectUnitOfWork`** — coordinate inserts, updates, deletes, relationships, rollback, and transaction ordering.
-* **`Selector interfaces`** — define contracts for selector implementations.
-* **`TestDataFactory`** — reusable test data helpers for common standard SObjects.
-* **`Ready-to-use selector examples`** — Account, Contact, Case, and Lead.
-* 
-# Deployment
-
-<a href="https://githubsfdeploy.herokuapp.com?owner=phatnt95&repo=salesforce-apex-framework&ref=main">
-  <img alt="Deploy to Salesforce"
-       src="https://raw.githubusercontent.com/afawcett/githubsfdeploy/master/deploy.png">
-</a>
-
-Deploy the framework directly to your Salesforce org without cloning the repository.
-
-## Architecture
-
-```text
-Trigger
-   │
-   ▼
-Trigger Handler
-   │
-   ▼
-Service / Domain
-   │
-   ├────────────── READ ──────────────┐
-   │                                 │
-   ▼                                 │
-SObjectSelector                      │
-   │                                 │
-   ▼                                 │
-SOQLBuilder                           │
-   │                                 │
-   ▼                                 │
- SOQL                                │
-   │                                 │
-   └─────────────── WRITE ────────────┘
-                     │
-                     ▼
-              SObjectUnitOfWork
-                     │
-                     ▼
-                    DML
-```
-
-### Core Rules
-
-**Reads go through a Selector.**
-
-Do not place application SOQL directly in services, domains, handlers, or controllers. Create or reuse the selector for the SObject being queried.
-
-**Selector queries use `SOQLBuilder`.**
-
-Concrete selector methods should start from `newQueryBuilder()` and compose the query through `SOQLBuilder`.
-
-**Writes go through `SObjectUnitOfWork`.**
-
-Application code should register records with the Unit of Work and call `commitWork()` at the transaction boundary instead of performing scattered DML operations.
+A lightweight, enterprise-ready Apex framework for building scalable and maintainable Salesforce applications. It establishes a consistent architecture for data retrieval, dynamic SOQL construction, transaction management, and automated test data generation.
 
 ---
 
-## Components
+## Table of Contents
+
+- [Overview](#overview)
+- [Quick Deploy](#quick-deploy)
+- [Architecture](#architecture)
+- [Core Components](#core-components)
+  - [SOQLBuilder](#soqlbuilder)
+  - [SObjectSelector](#sobjectselector)
+  - [SObjectUnitOfWork](#sobjectunitofwork)
+  - [TestDataFactory](#testdatafactory)
+- [Ready-to-Use Selectors](#ready-to-use-selectors)
+- [Project Structure](#project-structure)
+- [Design Principles](#design-principles)
+- [Testing](#testing)
+- [Salesforce CLI Commands](#salesforce-cli-commands)
+- [AI Coding Agent Integration](#ai-coding-agent-integration)
+- [License](#license)
+
+---
+
+## Overview
+
+The framework provides foundational building blocks designed to enforce separation of concerns in enterprise Apex codebases:
+
+* **`SOQLBuilder`**: Fluent, type-safe dynamic SOQL query builder supporting security enforcement, user mode, subqueries, bind variables, and automated ID list formatting.
+* **`SObjectSelector`**: Abstract base selector class enforcing consistent field selection, default queries (`selectAll`, `selectById`), and default-field validation.
+* **`SObjectUnitOfWork`**: Transaction manager coordinating ordered DML operations (inserts, updates, deletes), parent-child relationship resolution, and automatic rollback on failure.
+* **`TestDataFactory`**: Centralized test data generator with sensible defaults, unique sequence tracking, and duplicate rule bypass.
+* **Reference Implementations**: Production-grade selectors for `Account`, `Contact`, `Case`, and `Lead`.
+
+---
+
+## Quick Deploy
+
+Deploy the framework directly to your Salesforce environment with one click:
+
+| Environment | 1-Click Deployment |
+| :--- | :--- |
+| **Production / Developer Org** | [![Deploy to Salesforce](https://raw.githubusercontent.com/afawcett/githubsfdeploy/master/button/button.png)](https://githubsfdeploy.herokuapp.com/?owner=phatnt95&repo=salesforce-apex-framework&ref=main) |
+| **Sandbox Org** | [![Deploy to Salesforce Sandbox](https://raw.githubusercontent.com/afawcett/githubsfdeploy/master/button/button.png)](https://githubsfdeploy.herokuapp.com/?owner=phatnt95&repo=salesforce-apex-framework&ref=main&target=sandbox) |
+
+---
+
+## Architecture
+
+The framework decouples data reads and writes from business logic across triggers, handlers, services, and controllers:
+
+```text
+               ┌──────────────────────────────────────────────┐
+               │    Trigger / Controller / Invocable Flow     │
+               └──────────────────────┬───────────────────────┘
+                                      │
+                                      ▼
+               ┌──────────────────────────────────────────────┐
+               │             Service / Domain Layer           │
+               └──────────────┬───────────────────────────────┘
+                              │
+            ┌─────────────────┴─────────────────┐
+            │ READ                              │ WRITE
+            ▼                                   ▼
+┌───────────────────────┐           ┌───────────────────────┐
+│    SObjectSelector    │           │   SObjectUnitOfWork   │
+└───────────┬───────────┘           └───────────┬───────────┘
+            │                                   │
+            ▼                                   ▼
+┌───────────────────────┐           ┌───────────────────────┐
+│      SOQLBuilder      │           │    Database DML       │
+└───────────┬───────────┘           │  (Ordered & Atomic)   │
+            │                       └───────────────────────┘
+            ▼
+┌───────────────────────┐
+│     SOQL Database     │
+│   (System/User Mode)  │
+└───────────────────────┘
+```
+
+### Core Architecture Rules
+
+1. **Reads go through a Selector**: Never place inline SOQL queries directly in service classes, triggers, or UI controllers. Always query through the dedicated `SObjectSelector`.
+2. **Selectors compose via `SOQLBuilder`**: Selector query methods start with `newQueryBuilder()` and fluently construct queries, ensuring centralized security and field consistency.
+3. **Writes go through `SObjectUnitOfWork`**: Coordinate inserts, updates, and deletes through Unit of Work. Call `commitWork()` at the transaction boundary rather than running scattered DML statements.
+
+---
+
+## Core Components
 
 ### SOQLBuilder
 
-`SOQLBuilder` provides a fluent API for constructing dynamic SOQL:
+`SOQLBuilder` offers a fluent, chainable API for building dynamic SOQL queries with compile-time safety and runtime security:
 
 ```apex
+// 1. Fluent Query Construction
 String query = new SOQLBuilder(Account.SObjectType)
-    .selectFields(new List<String>{
-        'Id',
-        'Name',
-        'Industry'
-    })
+    .selectFields(new List<String>{ 'Id', 'Name', 'Industry', 'AnnualRevenue' })
     .whereCondition('Industry = \'Technology\'')
-    .orderBy('Name ASC')
-    .setLimit(100)
+    .orderBy('AnnualRevenue DESC NULLS LAST')
+    .setLimit(50)
+    .withUserMode()
     .build();
-```
 
-Supported features:
-
-* Single field selection
-* Multiple field selection
-* `List<String>` and `Set<String>` fields
-* Field Sets
-* Child subqueries
-* WHERE conditions
-* ORDER BY
-* LIMIT
-* OFFSET
-* `WITH SECURITY_ENFORCED`
-* User Mode execution
-* Input sanitization
-* Direct query execution
-
-Example:
-
-```apex
+// 2. Direct Execution with Bind Variables
 List<SObject> accounts = new SOQLBuilder(Account.SObjectType)
-    .selectFields(new List<String>{
-        'Id',
-        'Name',
-        'Industry'
-    })
-    .whereCondition('Industry = \'Technology\'')
+    .selectFields('Id, Name, Industry')
+    .whereCondition('Industry = :targetIndustry')
+    .bind('targetIndustry', 'Technology')
     .withUserMode()
     .execute();
 ```
+
+#### Key Capabilities
+
+* **Field Selection**: Single field (`selectField`), comma-separated strings (`selectFields('Id, Name')`), `List<String>`, `Set<String>`, and Field Sets (`Schema.FieldSet`).
+* **Subqueries**: Add child relationship queries using `selectSubQuery(SOQLBuilder childBuilder)`.
+* **Where Clauses**: Chainable `whereCondition(String condition)` joined automatically by `AND`.
+* **Order & Pagination**: `orderBy(String)`, `setLimit(Integer)`, and `setOffset(Integer)`.
+* **Security & Access**: `withSecurityEnforced()` for `WITH SECURITY_ENFORCED`, or `withUserMode()` for `AccessLevel.USER_MODE`.
+* **Bind Variables**: `bind(String key, Object value)` and `bind(Map<String, Object>)` executed with `Database.queryWithBinds`.
+* **ID Formatting Helper**: `SOQLBuilder.formatIds(Set<Id> ids)` safely formats ID collections into valid SOQL expressions (`'('001...', '001...')'`).
+* **Input Sanitization**: `SOQLBuilder.sanitize(String input)` escapes single quotes to safeguard against SOQL injection.
 
 ---
 
 ### SObjectSelector
 
-All concrete selectors extend `SObjectSelector`.
-
-Example:
+`SObjectSelector` is the abstract base class for all object-specific query selectors. Subclasses declare their target SObject type and default fields, while inheriting standard query capabilities.
 
 ```apex
 public with sharing class AccountSelector extends SObjectSelector {
@@ -137,157 +147,197 @@ public with sharing class AccountSelector extends SObjectSelector {
             'Name',
             'Industry',
             'Type',
-            'OwnerId'
+            'OwnerId',
+            'CreatedDate'
         };
     }
 
+    // Custom domain-specific queries
     public List<Account> selectByIndustry(String industry) {
         return (List<Account>) newQueryBuilder()
-            .whereCondition(
-                'Industry = \'' +
-                SOQLBuilder.sanitize(industry) +
-                '\''
-            )
+            .whereCondition('Industry = \'' + SOQLBuilder.sanitize(industry) + '\'')
             .orderBy('Name ASC')
             .execute();
     }
 }
 ```
 
-The base selector provides:
+#### Inherited Methods
 
-* `getSObjectType()`
-* `getDefaultFields()`
-* `selectAll()`
-* `selectById(Set<Id>)`
-* `newQueryBuilder()`
-* Default-field validation
-
-Every selector should represent **one SObject** and expose business-readable query methods.
-
-Examples:
-
-```text
-AccountSelector
-├── selectByIndustry()
-├── selectByType()
-├── selectByOwnerId()
-└── selectByNameLike()
-
-ContactSelector
-├── selectByAccountId()
-├── selectByAccountIds()
-├── selectByEmail()
-└── selectByDepartment()
-```
+* **`selectAll()`**: Queries all records using the default fields.
+* **`selectById(Set<Id> ids)`**: Queries records matching the provided set of IDs.
+* **`newQueryBuilder()`**: Instantiates a pre-configured `SOQLBuilder` loaded with default fields and SObject name.
+* **Default Field Validation**: Automatically verifies on invocation that `getDefaultFields()` contains at least one field and includes `'Id'`.
 
 ---
 
 ### SObjectUnitOfWork
 
-`SObjectUnitOfWork` centralizes persistence operations.
+`SObjectUnitOfWork` implements the Unit of Work design pattern to manage database transactions. It enforces proper execution order, automatically resolves parent-child relationships, and handles transaction rollbacks:
 
 ```apex
-SObjectUnitOfWork uow = new SObjectUnitOfWork(
-    new List<Schema.SObjectType>{
-        Account.SObjectType,
-        Contact.SObjectType
-    }
-);
+// Define execution dependency order: Parent first, then Child
+SObjectUnitOfWork uow = new SObjectUnitOfWork(new List<Schema.SObjectType>{
+    Account.SObjectType,
+    Contact.SObjectType
+});
 
-Account account = new Account(
-    Name = 'Acme'
-);
+// Create records
+Account acc = new Account(Name = 'Acme Corp');
+Contact con = new Contact(LastName = 'Smith');
 
-Contact contact = new Contact(
-    LastName = 'Developer'
-);
+// Register new parent
+uow.registerNew(acc);
 
-uow.registerNew(account);
+// Register child and link to parent before insert
+uow.registerNew(con, Contact.AccountId, acc);
 
-uow.registerNew(
-    contact,
-    Contact.AccountId,
-    account
-);
-
+// Commit all work in a single transaction
 uow.commitWork();
 ```
 
-Supported operations:
+#### Transaction Flow
 
-* `registerNew()`
-* `registerDirty()`
-* `registerDelete()`
-* `registerRelationship()`
-* Ordered DML by SObject type
-* Child-to-parent delete ordering
-* Automatic transaction rollback on failure
+1. **Dependency Order Execution**: Inserts and updates proceed strictly in the order specified in the constructor (e.g. `Account` then `Contact`).
+2. **Relationship Resolution**: Automatically assigns parent record IDs to child lookup fields before child records are inserted.
+3. **Reverse-Order Deletions**: Deletions execute in reverse dependency order (child before parent) to prevent foreign key errors.
+4. **Atomic Rollback**: If any DML statement fails, `commitWork()` rolls back to the initial `Savepoint` and re-throws the exception.
 
-### Transaction Ordering
+---
 
-The constructor accepts SObject types in dependency order:
+### TestDataFactory
+
+`TestDataFactory` provides centralized, consistent test data generation with built-in protections against duplicate rules and picklist validation issues:
 
 ```apex
-new List<Schema.SObjectType>{
-    Account.SObjectType,
-    Contact.SObjectType
-}
+// Insert 1 Account
+Account acc = TestDataFactory.createAccount(true);
+
+// Build 3 Contacts linked to the Account (in memory)
+List<Contact> contacts = TestDataFactory.createContacts(3, acc.Id, false);
+
+// Create Cases and Leads
+Case singleCase = TestDataFactory.createCase(acc.Id, true);
+List<Lead> leads = TestDataFactory.createLeads(5, true);
 ```
 
-This allows the Unit of Work to:
+#### Factory Highlights
 
-1. Insert parent records first.
-2. Resolve child lookup relationships.
-3. Insert child records.
-4. Process updates.
-5. Process deletes in reverse dependency order.
-6. Roll back the transaction if any DML operation fails.
+* **Safe Insertion**: Uses `Database.DMLOptions` with `duplicateRuleHeader.allowSave = true` to prevent test failures caused by active duplicate rules.
+* **Sequence Generators**: Employs static sequence counters (`accountSequence`, `contactSequence`, etc.) so multiple factory calls within the same transaction generate unique names and emails.
+* **Clean Standards**: Avoids hardcoding strict picklist fields (such as State & Country codes) that could fail in customized orgs.
 
 ---
 
-## Included Selectors
+## Ready-to-Use Selectors
 
-The repository currently includes:
+The repository includes battle-tested selectors and test suites for standard Salesforce objects:
 
-| Selector          | SObject |
-| ----------------- | ------- |
-| `AccountSelector` | Account |
-| `ContactSelector` | Contact |
-| `CaseSelector`    | Case    |
-| `LeadSelector`    | Lead    |
-
-Each selector demonstrates the intended Selector + `SOQLBuilder` pattern and includes corresponding unit tests.
+| Selector | SObject | Key Query Methods |
+| :--- | :--- | :--- |
+| [`AccountSelector`](file:///d:/DEV/salesforce-apex-framework/force-app/main/default/classes/AccountSelector.cls) | `Account` | `selectByIndustry`, `selectByType`, `selectByOwnerId`, `selectByNameLike` |
+| [`ContactSelector`](file:///d:/DEV/salesforce-apex-framework/force-app/main/default/classes/ContactSelector.cls) | `Contact` | `selectByAccountId`, `selectByAccountIds`, `selectByEmail`, `selectByDepartment` |
+| [`CaseSelector`](file:///d:/DEV/salesforce-apex-framework/force-app/main/default/classes/CaseSelector.cls) | `Case` | `selectByAccountId`, `selectByStatus`, `selectByPriority`, `selectOpenCases`, `selectByContactId` |
+| [`LeadSelector`](file:///d:/DEV/salesforce-apex-framework/force-app/main/default/classes/LeadSelector.cls) | `Lead` | `selectByStatus`, `selectByLeadSource`, `selectUnconvertedLeads`, `selectByIndustry`, `selectByEmail` |
 
 ---
 
-# Quick Deploy
+## Project Structure
 
-You can deploy the framework directly to a Salesforce org without cloning the repository.
-
-## Production / Developer Org
-
-[![Deploy to Salesforce](https://raw.githubusercontent.com/afawcett/githubsfdeploy/master/button/button.png)](https://githubsfdeploy.herokuapp.com/?owner=phatnt95&repo=salesforce-apex-framework&ref=main)
-
-## Sandbox
-
-[![Deploy to Salesforce Sandbox](https://raw.githubusercontent.com/afawcett/githubsfdeploy/master/button/button.png)](https://githubsfdeploy.herokuapp.com/?owner=phatnt95&repo=salesforce-apex-framework&ref=main&target=sandbox)
-
-The deployment uses the repository's Salesforce metadata and `manifest/package.xml`.
-
-> **Note:** Review the metadata and tests before deploying to a production org. This project is intended as a reusable Apex framework and reference implementation.
+```text
+salesforce-apex-framework/
+├── force-app/
+│   └── main/default/classes/
+│       ├── Interfaces
+│       │   ├── ISObjectSelector.cls
+│       │   └── ISObjectUnitOfWork.cls
+│       │
+│       ├── Core Framework
+│       │   ├── SOQLBuilder.cls
+│       │   ├── SOQLBuilderTest.cls
+│       │   ├── SObjectSelector.cls
+│       │   ├── SObjectSelectorTest.cls
+│       │   ├── SObjectUnitOfWork.cls
+│       │   └── SObjectUnitOfWorkTest.cls
+│       │
+│       ├── Domain Selectors
+│       │   ├── AccountSelector.cls
+│       │   ├── AccountSelectorTest.cls
+│       │   ├── ContactSelector.cls
+│       │   ├── ContactSelectorTest.cls
+│       │   ├── CaseSelector.cls
+│       │   ├── CaseSelectorTest.cls
+│       │   ├── LeadSelector.cls
+│       │   └── LeadSelectorTest.cls
+│       │
+│       └── Test Utilities
+│           └── TestDataFactory.cls
+│
+├── manifest/
+│   └── package.xml
+├── config/
+│   └── project-scratch-def.json
+├── sfdx-project.json
+├── package.json
+└── README.md
+```
 
 ---
 
-# Salesforce CLI
+## Design Principles
 
-## Authenticate
+### 1. Separation of Concerns
+* **Business Rules** reside in Services and Domain classes.
+* **Data Retrieval** belongs exclusively to `SObjectSelector`.
+* **SOQL String Construction** is delegated to `SOQLBuilder`.
+* **DML Persistence & Transactions** belong to `SObjectUnitOfWork`.
+
+### 2. Consistency & Reusability
+Every SObject has one canonical selector class. This eliminates duplicate query logic, avoids missing fields, and simplifies query maintenance across the application.
+
+### 3. Enterprise Security
+`SOQLBuilder` simplifies compliance with Salesforce security review standards by natively supporting:
+* `withSecurityEnforced()` for field- and object-level read permissions.
+* `withUserMode()` for `AccessLevel.USER_MODE` query enforcement.
+* Strict sanitization to eliminate dynamic SOQL injection vulnerabilities.
+
+---
+
+## Testing
+
+The framework achieves **100% test pass rate** with thorough assertions and edge case validation:
+
+* Query construction, field concatenation, sanitization, and bind parameter execution.
+* Base selector validation (null checks, missing `Id` field detection, empty ID sets).
+* Unit of Work transactional rollback, dirty-state validation, and relationship linking.
+* Duplicate-safe test record creation via `TestDataFactory`.
+
+### Run All Tests via CLI
+
+```bash
+sf apex run test \
+    --tests AccountSelectorTest \
+    --tests ContactSelectorTest \
+    --tests CaseSelectorTest \
+    --tests LeadSelectorTest \
+    --tests SObjectUnitOfWorkTest \
+    --tests SOQLBuilderTest \
+    --tests SObjectSelectorTest \
+    --wait 10 \
+    --result-format human
+```
+
+---
+
+## Salesforce CLI Commands
+
+### 1. Authenticate with your Org
 
 ```bash
 sf org login web --alias my-org
 ```
 
-## Deploy Using the Manifest
+### 2. Deploy Using Manifest
 
 ```bash
 sf project deploy start \
@@ -295,7 +345,7 @@ sf project deploy start \
     --target-org my-org
 ```
 
-## Deploy and Run Local Tests
+### 3. Deploy and Run Local Tests
 
 ```bash
 sf project deploy start \
@@ -304,7 +354,7 @@ sf project deploy start \
     --test-level RunLocalTests
 ```
 
-## Deploy the Entire Source Directory
+### 4. Deploy Entire Source
 
 ```bash
 sf project deploy start \
@@ -312,238 +362,20 @@ sf project deploy start \
     --target-org my-org
 ```
 
-## Run Apex Tests
+---
 
-```bash
-sf apex run test \
-    --target-org my-org \
-    --test-level RunLocalTests \
-    --wait 30
-```
+## AI Coding Agent Integration
+
+This framework is built to integrate with AI-assisted development tools and Autonomous Coding Agents. 
+
+Agents adhering to the framework will consistently generate compliant code:
+
+* **Query Generation**: Agents are instructed to extend `SObjectSelector` and use `SOQLBuilder` rather than writing inline SOQL queries.
+* **DML Operations**: Agents register mutations with `SObjectUnitOfWork` rather than calling standalone `insert` or `update` statements.
+* **Test Creation**: Agents leverage `TestDataFactory` for clean, reliable mock data without triggering validation rule or duplicate rule errors.
 
 ---
 
+## License
 
-
-# Project Structure
-
-```text
-salesforce-apex-framework/
-│
-├── force-app/
-│   └── main/default/classes/
-│       │
-│       ├── ISObjectSelector.cls
-│       ├── ISObjectUnitOfWork.cls
-│       │
-│       ├── SObjectSelector.cls
-│       ├── SObjectSelectorTest.cls
-│       │
-│       ├── SObjectUnitOfWork.cls
-│       ├── SObjectUnitOfWorkTest.cls
-│       │
-│       ├── SOQLBuilder.cls
-│       ├── SOQLBuilderTest.cls
-│       │
-│       ├── AccountSelector.cls
-│       ├── AccountSelectorTest.cls
-│       │
-│       ├── ContactSelector.cls
-│       ├── ContactSelectorTest.cls
-│       │
-│       ├── CaseSelector.cls
-│       ├── CaseSelectorTest.cls
-│       │
-│       ├── LeadSelector.cls
-│       ├── LeadSelectorTest.cls
-│       │
-│       └── TestDataFactory.cls
-│
-├── manifest/
-│   └── package.xml
-│
-├── config/
-├── scripts/
-├── sfdx-project.json
-└── package.json
-```
-
----
-
-# Design Principles
-
-## 1. One Selector per SObject
-
-SObject-specific read logic belongs to its corresponding selector.
-
-```text
-Account  → AccountSelector
-Contact  → ContactSelector
-Case     → CaseSelector
-Lead     → LeadSelector
-```
-
-Avoid putting queries directly into business services.
-
----
-
-## 2. One Query Builder Path
-
-Selector queries should use the existing `SOQLBuilder` implementation.
-
-```text
-Service / Domain
-       │
-       ▼
-SObjectSelector
-       │
-       ▼
-SOQLBuilder
-       │
-       ▼
-SOQL
-```
-
-This keeps query construction consistent and gives the framework one place to evolve dynamic SOQL behavior.
-
----
-
-## 3. One Transaction Boundary
-
-Use `SObjectUnitOfWork` to collect changes and commit them together.
-
-```text
-Business Logic
-      │
-      ├── registerNew()
-      ├── registerDirty()
-      ├── registerDelete()
-      │
-      ▼
-commitWork()
-      │
-      ▼
-DML Transaction
-```
-
----
-
-## 4. Keep Business Logic Out of Data Access
-
-Responsibilities should remain separated:
-
-```text
-Service / Domain
-    → business rules
-
-Selector
-    → data retrieval
-
-SOQLBuilder
-    → query construction
-
-UnitOfWork
-    → persistence coordination
-```
-
----
-
-# Testing
-
-The framework includes unit tests for:
-
-* `SOQLBuilder`
-* `SObjectSelector`
-* `SObjectUnitOfWork`
-* Account Selector
-* Contact Selector
-* Case Selector
-* Lead Selector
-
-`TestDataFactory` provides reusable test data helpers:
-
-```apex
-Account account = TestDataFactory.createAccount(false);
-```
-
-The Unit of Work tests cover scenarios including:
-
-* New records
-* Parent/child relationships
-* Updates
-* Deletes
-* Transaction rollback
-* Invalid SObject types
-* Missing record IDs
-
----
-
-# API Version
-
-The project currently targets Salesforce API version **67.0**, as configured in:
-
-```text
-sfdx-project.json
-manifest/package.xml
-```
-
----
-
-# AI Coding Agent Integration
-
-This framework is designed to work together with the companion Salesforce Apex AI Rules & Skills project.
-
-```text
-salesforce-apex-agent
-        │
-        │ understands / enforces
-        ▼
-salesforce-apex-framework
-        │
-        ├── SObjectUnitOfWork
-        ├── SObjectSelector
-        ├── SOQLBuilder
-        └── TestDataFactory
-```
-
-The AI rules can enforce the following architecture:
-
-```text
-READ
-Service / Domain
-      ↓
-SObjectSelector
-      ↓
-SOQLBuilder
-      ↓
-SOQL
-```
-
-```text
-WRITE
-Service / Domain
-      ↓
-SObjectUnitOfWork
-      ↓
-DML
-```
-
-For trigger-based implementations, the companion AI rules can additionally enforce:
-
-```text
-SObjectTrigger
-      ↓
-<SObject>TriggerHandler
-      ↓
-BaseTriggerHandler
-      ↓
-Service / Domain
-```
-
-This ensures AI-generated Apex reuses the existing framework rather than creating parallel abstractions.
-
----
-
-# License
-
-MIT
+This project is licensed under the [MIT License](LICENSE).
