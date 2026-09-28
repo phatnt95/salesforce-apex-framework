@@ -5,22 +5,28 @@
 @isTest
 public class TestDataFactory {
 
+    private static Integer accountSequence = 0;
+    private static Integer contactSequence = 0;
+    private static Integer caseSequence = 0;
+    private static Integer leadSequence = 0;
+
     // ─── Accounts ─────────────────────────────────────────────────────────
 
     public static List<Account> createAccounts(Integer count, Boolean doInsert) {
         List<Account> accounts = new List<Account>();
         for (Integer i = 0; i < count; i++) {
+            Integer seq = accountSequence++;
             accounts.add(new Account(
-                Name        = 'Test Account ' + i,
-                BillingCity    = 'San Francisco',
-                BillingState   = 'CA',
-                BillingCountry = 'USA',
+                Name        = 'Test Account ' + seq,
                 Industry    = 'Technology',
                 Type        = 'Customer'
             ));
         }
         if (doInsert) {
-            insert accounts;
+            Database.DMLOptions dml = new Database.DMLOptions();
+            dml.duplicateRuleHeader.allowSave = true;
+            dml.optAllOrNone = true;
+            Database.insert(accounts, dml);
         }
         return accounts;
     }
@@ -34,17 +40,21 @@ public class TestDataFactory {
     public static List<Contact> createContacts(Integer count, Id accountId, Boolean doInsert) {
         List<Contact> contacts = new List<Contact>();
         for (Integer i = 0; i < count; i++) {
+            Integer seq = contactSequence++;
             contacts.add(new Contact(
                 FirstName   = 'Test',
-                LastName    = 'Contact ' + i,
+                LastName    = 'Contact ' + seq,
                 AccountId   = accountId,
-                Email       = 'testcontact' + i + '@example.com',
-                Phone       = '555-000-' + String.valueOf(i).leftPad(4, '0'),
+                Email       = 'testcontact' + seq + '@example.com',
+                Phone       = '555-000-' + String.valueOf(seq).leftPad(4, '0'),
                 Title       = 'QA Engineer'
             ));
         }
         if (doInsert) {
-            insert contacts;
+            Database.DMLOptions dml = new Database.DMLOptions();
+            dml.duplicateRuleHeader.allowSave = true;
+            dml.optAllOrNone = true;
+            Database.insert(contacts, dml);
         }
         return contacts;
     }
@@ -58,8 +68,9 @@ public class TestDataFactory {
     public static List<Case> createCases(Integer count, Id accountId, Boolean doInsert) {
         List<Case> cases = new List<Case>();
         for (Integer i = 0; i < count; i++) {
+            Integer seq = caseSequence++;
             cases.add(new Case(
-                Subject     = 'Test Case ' + i,
+                Subject     = 'Test Case ' + seq,
                 AccountId   = accountId,
                 Status      = 'New',
                 Priority    = 'Medium',
@@ -67,7 +78,10 @@ public class TestDataFactory {
             ));
         }
         if (doInsert) {
-            insert cases;
+            Database.DMLOptions dml = new Database.DMLOptions();
+            dml.duplicateRuleHeader.allowSave = true;
+            dml.optAllOrNone = true;
+            Database.insert(cases, dml);
         }
         return cases;
     }
@@ -81,18 +95,22 @@ public class TestDataFactory {
     public static List<Lead> createLeads(Integer count, Boolean doInsert) {
         List<Lead> leads = new List<Lead>();
         for (Integer i = 0; i < count; i++) {
+            Integer seq = leadSequence++;
             leads.add(new Lead(
                 FirstName   = 'Test',
-                LastName    = 'Lead ' + i,
-                Company     = 'Test Company ' + i,
-                Email       = 'testlead' + i + '@example.com',
+                LastName    = 'Lead ' + seq,
+                Company     = 'Test Company ' + seq,
+                Email       = 'testlead' + seq + '@example.com',
                 Status      = 'Open - Not Contacted',
                 LeadSource  = 'Web',
                 Industry    = 'Technology'
             ));
         }
         if (doInsert) {
-            insert leads;
+            Database.DMLOptions dml = new Database.DMLOptions();
+            dml.duplicateRuleHeader.allowSave = true;
+            dml.optAllOrNone = true;
+            Database.insert(leads, dml);
         }
         return leads;
     }

@@ -60,7 +60,7 @@ public with sharing class ContactSelector extends SObjectSelector {
             return new List<Contact>();
         }
         return (List<Contact>) newQueryBuilder()
-            .whereCondition('AccountId IN :accountIds')
+            .whereCondition('AccountId IN ' + SOQLBuilder.formatIds(accountIds))
             .orderBy('LastName ASC, FirstName ASC')
             .execute();
     }

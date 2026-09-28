@@ -67,7 +67,7 @@ public abstract class SObjectSelector implements ISObjectSelector {
             return new List<SObject>();
         }
         return newQueryBuilder()
-            .whereCondition('Id IN :ids')
+            .whereCondition('Id IN ' + SOQLBuilder.formatIds(ids))
             .execute();
     }
 

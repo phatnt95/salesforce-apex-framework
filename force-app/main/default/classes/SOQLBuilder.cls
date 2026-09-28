@@ -14,11 +14,13 @@ public with sharing class SOQLBuilder {
     private Integer offsetCount;
     private Boolean isSecurityEnforced;
     private Boolean isUserMode;
+    private Map<String, Object> bindMap;
 
     public SOQLBuilder(String sObjectName) {
         this.sObjectName = sObjectName;
         this.selectFields = new Set<String>();
         this.whereConditions = new List<String>();
+        this.bindMap = new Map<String, Object>();
         this.isSecurityEnforced = false;
         this.isUserMode = false;
     }
@@ -115,8 +117,42 @@ public with sharing class SOQLBuilder {
         return this;
     }
 
+    public SOQLBuilder bind(String key, Object value) {
+        if (String.isNotBlank(key)) {
+            this.bindMap.put(key, value);
+        }
+        return this;
+    }
+
+    public SOQLBuilder bind(Map<String, Object> binds) {
+        if (binds != null) {
+            this.bindMap.putAll(binds);
+        }
+        return this;
+    }
+
     public static String sanitize(String input) {
         return String.isBlank(input) ? input : String.escapeSingleQuotes(input);
+    }
+
+    public static String formatIds(Set<Id> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return '()';
+        }
+        List<String> quoted = new List<String>();
+        for (Id recordId : ids) {
+            if (recordId != null) {
+                quoted.add('\'' + String.escapeSingleQuotes(String.valueOf(recordId)) + '\'');
+            }
+        }
+        return '(' + String.join(quoted, ', ') + ')';
+    }
+
+    public static String formatIds(List<Id> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return '()';
+        }
+        return formatIds(new Set<Id>(ids));
     }
 
     public String build() {
@@ -155,6 +191,10 @@ public with sharing class SOQLBuilder {
 
     public List<SObject> execute() {
         String query = build();
+        if (!this.bindMap.isEmpty()) {
+            AccessLevel access = this.isUserMode ? AccessLevel.USER_MODE : AccessLevel.SYSTEM_MODE;
+            return Database.queryWithBinds(query, this.bindMap, access);
+        }
         if (this.isUserMode) {
             return Database.query(query, AccessLevel.USER_MODE);
         } else {

@@ -16,9 +16,9 @@ private class SObjectUnitOfWorkTest {
         };
         SObjectUnitOfWork uow = new SObjectUnitOfWork(types);
         // 1. Create records
-        Account parentAcc = TestDataFactory.createAccount('UoW Parent Account', false);
-        Contact childCon1 = TestDataFactory.createContact(null, 'UoW', 'Child 1', false);
-        Contact childCon2 = TestDataFactory.createContact(null, 'UoW', 'Child 2', false);
+        Account parentAcc = TestDataFactory.createAccount(false);
+        Contact childCon1 = TestDataFactory.createContact(null, false);
+        Contact childCon2 = TestDataFactory.createContact(null, false);
         // 2. Register
         uow.registerNew(parentAcc);
         
@@ -33,7 +33,7 @@ private class SObjectUnitOfWorkTest {
         uow.commitWork();
         Test.stopTest();
         // 4. Verify database state
-        List<Account> accounts = [SELECT Id, Name FROM Account WHERE Name = 'UoW Parent Account'];
+        List<Account> accounts = [SELECT Id, Name FROM Account WHERE Id = :parentAcc.Id];
         System.assertEquals(1, accounts.size(), 'Account should be inserted');
         
         List<Contact> contacts = [SELECT Id, FirstName, LastName, AccountId FROM Contact WHERE AccountId = :accounts[0].Id];
@@ -42,7 +42,7 @@ private class SObjectUnitOfWorkTest {
     @isTest
     static void testDirtyRecords() {
         // Create initial data
-        Account acc = TestDataFactory.createAccount('Original Name', true);
+        Account acc = TestDataFactory.createAccount(true);
         List<Schema.SObjectType> types = new List<Schema.SObjectType>{ Account.SObjectType };
         SObjectUnitOfWork uow = new SObjectUnitOfWork(types);
         // Modify and register dirty
@@ -58,7 +58,7 @@ private class SObjectUnitOfWorkTest {
     @isTest
     static void testDeleteRecords() {
         // Create initial data
-        Account acc = TestDataFactory.createAccount('To Delete', true);
+        Account acc = TestDataFactory.createAccount(true);
         List<Schema.SObjectType> types = new List<Schema.SObjectType>{ Account.SObjectType };
         SObjectUnitOfWork uow = new SObjectUnitOfWork(types);
         // Register for deletion
@@ -78,10 +78,12 @@ private class SObjectUnitOfWorkTest {
         };
         SObjectUnitOfWork uow = new SObjectUnitOfWork(types);
         // Register valid Account
-        Account acc = TestDataFactory.createAccount('Rollback Account', false);
+        Account acc = TestDataFactory.createAccount(false);
+        acc.Name = 'Rollback Account';
         uow.registerNew(acc);
         // Register invalid Contact (LastName is a required field on Contact)
-        Contact invalidCon = TestDataFactory.createContact(null, 'Invalid', null, false);
+        Contact invalidCon = TestDataFactory.createContact(null, false);
+        invalidCon.LastName = null;
         uow.registerNew(invalidCon, Contact.AccountId, acc);
         Boolean exceptionThrown = false;
         Test.startTest();
@@ -102,7 +104,7 @@ private class SObjectUnitOfWorkTest {
         List<Schema.SObjectType> types = new List<Schema.SObjectType>{ Account.SObjectType };
         SObjectUnitOfWork uow = new SObjectUnitOfWork(types);
         // Try registering a Contact, which is unregistered
-        Contact con = TestDataFactory.createContact(null, null, 'Test', false);
+        Contact con = TestDataFactory.createContact(null, false);
         
         Boolean exceptionThrown = false;
         try {
@@ -118,7 +120,7 @@ private class SObjectUnitOfWorkTest {
         List<Schema.SObjectType> types = new List<Schema.SObjectType>{ Account.SObjectType };
         SObjectUnitOfWork uow = new SObjectUnitOfWork(types);
         // Account record without an Id
-        Account acc = TestDataFactory.createAccount('No Id', false);
+        Account acc = TestDataFactory.createAccount(false);
         Boolean exceptionThrown = false;
         try {
             uow.registerDirty(acc);
