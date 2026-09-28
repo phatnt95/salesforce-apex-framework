@@ -42,12 +42,12 @@ The framework provides foundational building blocks designed to enforce separati
 
 ## Quick Deploy
 
-Deploy the framework directly to your Salesforce environment with one click:
+Deploy the framework directly to your Salesforce org without cloning the repository:
 
-| Environment | 1-Click Deployment |
-| :--- | :--- |
-| **Production / Developer Org** | [![Deploy to Salesforce](https://raw.githubusercontent.com/afawcett/githubsfdeploy/master/button/button.png)](https://githubsfdeploy.herokuapp.com/?owner=phatnt95&repo=salesforce-apex-framework&ref=main) |
-| **Sandbox Org** | [![Deploy to Salesforce Sandbox](https://raw.githubusercontent.com/afawcett/githubsfdeploy/master/button/button.png)](https://githubsfdeploy.herokuapp.com/?owner=phatnt95&repo=salesforce-apex-framework&ref=main&target=sandbox) |
+<a href="https://githubsfdeploy.herokuapp.com?owner=phatnt95&repo=salesforce-apex-framework&ref=main">
+  <img alt="Deploy to Salesforce"
+       src="https://raw.githubusercontent.com/afawcett/githubsfdeploy/master/deploy.png">
+</a>
 
 ---
 
