@@ -1,4 +1,6 @@
 {
+  "tabWidth": 4,
+  "useTabs": false,
   "trailingComma": "none",
   "plugins": [
     "prettier-plugin-apex",

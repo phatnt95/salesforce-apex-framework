@@ -1,8 +1,9 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
 	<types>
 		<members>AccountSelector</members>
 		<members>AccountSelectorTest</members>
+		<members>AccountTriggerHandler</members>
 		<members>CaseSelector</members>
 		<members>CaseSelectorTest</members>
 		<members>ContactSelector</members>
@@ -18,7 +19,13 @@
 		<members>SObjectUnitOfWork</members>
 		<members>SObjectUnitOfWorkTest</members>
 		<members>TestDataFactory</members>
+		<members>TriggerHandler</members>
+		<members>TriggerHandlerTest</members>
 		<name>ApexClass</name>
+	</types>
+	<types>
+		<members>AccountTrigger</members>
+		<name>ApexTrigger</name>
 	</types>
 	<version>67.0</version>
 </Package>
